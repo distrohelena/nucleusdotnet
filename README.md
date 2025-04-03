@@ -12,7 +12,7 @@ Task Manager system that delegates tasks and can have Delegate rules for the exe
 
 
 * Web Server with routing
-    - Sample: https://github.com/lucasassislar/distrolucasblog
+    - Sample: https://github.com/distrohelena/distrolucasblog
     - Regex route system - Make a base class for all your page routes and add a "[RouteManager("^/w")]" attribute
         - Route functions: [Route("GET", "path_to_route_regex")]
         - Parameters passed to the route will be input to the function, so this works:
@@ -37,10 +37,10 @@ Task Manager system that delegates tasks and can have Delegate rules for the exe
 
 # Projects Using NucleusDotNet
 
-- https://github.com/lucasassislar/distrolucasblog 
+- https://github.com/distrohelena/distrohelenablog 
 My personal website uses the library for serving and routing on a Linux machine by running it under .NET Core
 
-- https://github.com/lucasassislar/nucleuscoop 
+- https://github.com/distrohelena/nucleuscoop 
 Nucleus Coop uses it for the UI and most split functions/Win32 access
 
 - Videofy (WIP no link)
