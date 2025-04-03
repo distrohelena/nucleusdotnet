@@ -182,7 +182,6 @@ namespace Nucleus.IO.LZMA {
 
         static void PrintValue(UInt64 v) {
 #if !WINRT
-
             string s = v.ToString();
             for (int i = 0; i + s.Length < 6; i++)
                 System.Console.Write(" ");
@@ -203,7 +202,6 @@ namespace Nucleus.IO.LZMA {
             UInt64 size,
             bool decompressMode, UInt64 secondSize) {
 #if !WINRT
-
             UInt64 speed = MyMultDiv64(size, elapsedTime);
             PrintValue(speed / 1024);
             System.Console.Write(" KB/s  ");
@@ -237,6 +235,7 @@ namespace Nucleus.IO.LZMA {
             {
                 CoderPropID.DictionarySize,
             };
+
             object[] properties =
             {
                 (Int32)(dictionarySize),

@@ -1,25 +1,30 @@
-﻿using System;
+﻿#if WINDOWS
+using System;
+using System.ComponentModel;
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace Nucleus.Platform.Windows.Interop {
     public static class User32Interop {
-        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-        public static extern IntPtr GetFocus();
-
-        [DllImport("user32.dll")]
-        public static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
-
-        internal delegate bool EnumThreadDelegate(IntPtr hWnd, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        internal static extern bool EnumThreadWindows(int dwThreadId, EnumThreadDelegate lpfn,
-            IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        static extern bool SetWindowText(IntPtr hWnd, string text);
-
         // size of a device name string
         private const int CCHDEVICENAME = 32;
+
+        public enum ShowWindowEnum {
+            Hide = 0,
+            ShowNormal = 1, ShowMinimized = 2, ShowMaximized = 3,
+            Maximize = 3, ShowNormalNoActivate = 4, Show = 5,
+            Minimize = 6, ShowMinNoActivate = 7, ShowNoActivate = 8,
+            Restore = 9, ShowDefault = 10, ForceMinimized = 11
+        };
+
+        public struct WindowPlacement {
+            public int length;
+            public int flags;
+            public int showCmd;
+            public Point ptMinPosition;
+            public Point ptMaxPosition;
+            public Rectangle rcNormalPosition;
+        }
 
         /// <summary>
         /// The MONITORINFOEX structure contains information about a display monitor.
@@ -103,6 +108,50 @@ namespace Nucleus.Platform.Windows.Interop {
             public int Bottom;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ANIMATIONINFO {
+
+            public ANIMATIONINFO(bool iMinAnimate) {
+                this.cbSize = GetSize();
+                if (iMinAnimate) this.iMinAnimate = 1;
+                else this.iMinAnimate = 0;
+            }
+
+            public uint cbSize;
+            private int iMinAnimate;
+
+            public bool IMinAnimate {
+                get {
+                    if (this.iMinAnimate == 0) return false;
+                    else return true;
+                }
+                set {
+                    if (value == true) this.iMinAnimate = 1;
+                    else this.iMinAnimate = 0;
+                }
+            }
+
+            public static uint GetSize() {
+                return (uint)Marshal.SizeOf(typeof(ANIMATIONINFO));
+            }
+        }
+
+
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+        public static extern IntPtr GetFocus();
+
+        [DllImport("user32.dll")]
+        public static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
+
+        internal delegate bool EnumThreadDelegate(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        internal static extern bool EnumThreadWindows(int dwThreadId, EnumThreadDelegate lpfn, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        static extern bool SetWindowText(IntPtr hWnd, string text);
+
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
 
@@ -126,14 +175,18 @@ namespace Nucleus.Platform.Windows.Interop {
         /// <returns>If the function succeeds, the return value is nonzero.</returns>
         [DllImport("user32.dll")]
         public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lpRect, MonitorEnumProc callback, int dwData);
+
         public delegate bool MonitorEnumProc(IntPtr hDesktop, IntPtr hdc, ref Rect pRect, int dwData);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfoEx lpmi);
 
         //Minimum supported client Windows 10 [desktop apps only]
-        [DllImport("user32.dll")]
-        public static extern bool GetDpiForMonitor(IntPtr hMonitor, MonitorDpiType dpiType, ref uint dpiX, ref uint dpiY);
+        //[DllImport("user32.dll")]
+        //public static extern bool GetDpiForMonitor(IntPtr hMonitor, MonitorDpiType dpiType, ref uint dpiX, ref uint dpiY);
+
+        [DllImport("Shcore.dll")]
+        public static extern IntPtr GetDpiForMonitor([In] IntPtr hmonitor, [In] MonitorDpiType dpiType, [Out] out uint dpiX, [Out] out uint dpiY);
 
         [DllImport("user32.dll")]
         public static extern uint GetDpiForWindow(IntPtr hWnd);
@@ -146,7 +199,11 @@ namespace Nucleus.Platform.Windows.Interop {
         public static extern IntPtr FindWindowEx(IntPtr parentHwnd, IntPtr childAfterHwnd, IntPtr className, string windowText);
 
         [DllImport("user32.dll", SetLastError = true)]
-        public static extern uint GetWindowLong(IntPtr hWnd, int nIndex);
+        public static extern long GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WindowPlacement lpwndpl);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetDesktopWindow();
@@ -162,6 +219,13 @@ namespace Nucleus.Platform.Windows.Interop {
 
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool IsIconic(IntPtr hWnd);
 
         /// <summary>
         /// Brings the thread that created the specified window into the foreground and activates the window. Keyboard input is
@@ -189,10 +253,13 @@ namespace Nucleus.Platform.Windows.Interop {
         /// <returns>If the function succeeds, the return value is the previous value of the specified 32-bit integer. 
         /// If the function fails, the return value is zero. To get extended error information, call GetLastError. </returns>
         [DllImport("user32.dll")]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, uint dwNewLong);
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, long dwNewLong);
 
         [DllImport("user32.dll")]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
         /// <summary>Shows a Window</summary>
         [DllImport("user32.dll")]
@@ -200,5 +267,64 @@ namespace Nucleus.Platform.Windows.Interop {
 
         [DllImport("user32.dll")]
         public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        [Flags]
+        public enum SPIF {
+            None = 0x00,
+            /// <summary>Writes the new system-wide parameter setting to the user profile.</summary>
+            SPIF_UPDATEINIFILE = 0x01,
+            /// <summary>Broadcasts the WM_SETTINGCHANGE message after updating the user profile.</summary>
+            SPIF_SENDCHANGE = 0x02,
+            /// <summary>Same as SPIF_SENDCHANGE.</summary>
+            SPIF_SENDWININICHANGE = 0x02
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SystemParametersInfo(SPI uiAction, uint uiParam, ref ANIMATIONINFO pvParam, SPIF fWinIni);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool PrintWindow(IntPtr hwnd, IntPtr hDC, uint nFlags);
+
+        [DllImport("user32.dll")]
+        public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr SetFocus(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        [DllImport("user32.dll", EntryPoint = "GetClassLong")]
+        public static extern uint GetClassLongPtr32(HandleRef hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "GetClassLongPtr")]
+        public static extern IntPtr GetClassLongPtr64(HandleRef hWnd, int nIndex);
+
+        public static IntPtr GetClassLongPtr(HandleRef hWnd, int nIndex) {
+            if (IntPtr.Size > 4)
+                return GetClassLongPtr64(hWnd, nIndex);
+            else
+                return new IntPtr(GetClassLongPtr32(hWnd, nIndex));
+        }
+
+        public static void SetMinimizeMaximizeAnimation(bool status) {
+            ANIMATIONINFO animationInfo = new ANIMATIONINFO(status);
+            SystemParametersInfo(SPI.SPI_GETANIMATION, ANIMATIONINFO.GetSize(),
+             ref animationInfo, SPIF.None);
+
+            if (animationInfo.IMinAnimate != status) {
+                animationInfo.IMinAnimate = status;
+                SystemParametersInfo(SPI.SPI_SETANIMATION, ANIMATIONINFO.GetSize(),
+                 ref animationInfo, SPIF.SPIF_SENDCHANGE);
+            }
+        }
+
+
     }
 }
+#endif

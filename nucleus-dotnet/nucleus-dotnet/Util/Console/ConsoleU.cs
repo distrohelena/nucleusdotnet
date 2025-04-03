@@ -17,6 +17,10 @@ namespace Nucleus {
         }
 
         private static string CropLine(string line) {
+            if (Console.IsOutputRedirected) {
+                return line;
+            }
+            
             int maxSize = Console.WindowWidth;
 
             if (line.Length >= maxSize) {

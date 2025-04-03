@@ -1,10 +1,159 @@
-﻿using System;
+using System;
 using System.Collections;
-using System.Drawing;
 using System.Linq;
+using System.Text;
 
 namespace Nucleus {
     public static class StringUtil {
+        public static string CapitalizerFirstLetter(string str) {
+            return str[0].ToString().ToUpperInvariant() + str.Remove(0, 1);
+        }
+
+        public static string ToCamelCase(string str) {
+            return str[0].ToString().ToLowerInvariant() + str.Remove(0, 1);
+        }
+
+        public static string Repeat(string str, int times) {
+            if (times == 0) {
+                return "";
+            }
+
+            string result = "";
+            for (int i = 0; i < times; i++) {
+                result += str;
+            }
+
+            return result;
+        }
+
+        public static string GetFileSize(int size) {
+            if (size < 1024) {
+                return $"{size}b";
+            } else if (size < Math.Pow(1024, 2)) {
+                return $"{(size / Math.Pow(1024, 1)).ToString("F2")}kb";
+            } else if (size < Math.Pow(1024, 3)) {
+                return $"{(size / Math.Pow(1024, 2)).ToString("F2")}mb";
+            } else if (size < Math.Pow(1024, 4)) {
+                return $"{(size / Math.Pow(1024, 3)).ToString("F2")}gb";
+            } else if (size < Math.Pow(1024, 5)) {
+                return $"{(size / Math.Pow(1024, 4)).ToString("F2")}tb";
+            } else if (size < Math.Pow(1024, 6)) {
+                return $"{(size / Math.Pow(1024, 5)).ToString("F2")}pb";
+            }
+            return "unknown";
+        }
+
+        public static string AddZero(int val) {
+            string str = val.ToString();
+
+            if (str.Length == 1) {
+                str = '0' + str;
+            }
+
+            return str;
+        }
+
+        public static string LoremIpsum(Random rand, int minWords, int maxWords,
+            int minSentences, int maxSentences,
+            int numParagraphs) {
+
+            var words = new[]{"lorem", "ipsum", "dolor", "sit", "amet", "consectetuer",
+                "adipiscing", "elit", "sed", "diam", "nonummy", "nibh", "euismod",
+                "tincidunt", "ut", "laoreet", "dolore", "magna", "aliquam", "erat"};
+
+            int numSentences = rand.Next(maxSentences - minSentences)
+                + minSentences + 1;
+            int numWords = rand.Next(maxWords - minWords) + minWords + 1;
+
+            StringBuilder result = new StringBuilder();
+
+            for (int p = 0; p < numParagraphs; p++) {
+                for (int s = 0; s < numSentences; s++) {
+                    for (int w = 0; w < numWords; w++) {
+                        if (w > 0) { result.Append(" "); }
+                        result.Append(words[rand.Next(words.Length)]);
+                    }
+                    result.Append(". ");
+                }
+            }
+
+            return result.ToString();
+        }
+
+        public static string Replace(string strValue, string matchPattern, string toReplace) {
+            while (strValue.Contains(matchPattern)) {
+                strValue = strValue.Replace(matchPattern, toReplace);
+            }
+            return strValue;
+        }
+
+        public static string ReplaceCall(
+            string strValue,
+            string matchPattern, string toReplace,
+            Func<string, string, string> replaced
+            ) {
+            string final = "";
+
+            int index = strValue.IndexOf(matchPattern);
+            if (index == -1) {
+                return strValue;
+            }
+
+            while (index != -1) {
+                final += strValue.Remove(index);
+                final += toReplace;
+                final = replaced(final, strValue.Remove(0, index + matchPattern.Length));
+
+                index = strValue.IndexOf(matchPattern, index + 1);
+            }
+            return final;
+        }
+
+        public static string ReplaceCallBefore(string strValue,
+            string matchPattern,
+            string toReplace,
+            Func<string, int, bool> replaced) {
+            string final = "";
+
+            int index = strValue.IndexOf(matchPattern);
+            if (index == -1) {
+                return strValue;
+            }
+
+            while (index != -1) {
+                if (replaced(strValue, index)) {
+                    final += strValue.Remove(index);
+                    final += toReplace;
+                } else {
+                    final += strValue.Remove(index + matchPattern.Length);
+                }
+
+                int newIndex = strValue.IndexOf(matchPattern, index + 1);
+                if (newIndex == -1) {
+                    final += strValue.Remove(0, index + matchPattern.Length);
+                }
+                index = newIndex;
+            }
+            return final;
+        }
+
+
+        public static string ReplaceChar(string strValue, char matchPattern, string toReplace) {
+            string final = "";
+
+            for (int i = 0; i < strValue.Length; i++) {
+                char c = strValue[i];
+
+                if (c == matchPattern) {
+                    final += toReplace;
+                } else {
+                    final += c;
+                }
+            }
+
+            return final;
+        }
+
         public static string ClearTextString(string strValue) {
             while (strValue.Contains("\t")) {
                 strValue = strValue.Replace("\t", "");
@@ -87,47 +236,6 @@ namespace Nucleus {
             return end;
         }
 
-        /// <summary>
-        /// Compute the distance between two strings.
-        /// </summary>
-        public static int ComputeLevenshteinDistance(string s, string t) {
-            int n = s.Length;
-            int m = t.Length;
-            int[,] d = new int[n + 1, m + 1];
-
-            // Step 1
-            if (n == 0) {
-                return m;
-            }
-
-            if (m == 0) {
-                return n;
-            }
-
-            // Step 2
-            for (int i = 0; i <= n; d[i, 0] = i++) {
-            }
-
-            for (int j = 0; j <= m; d[0, j] = j++) {
-            }
-
-            // Step 3
-            for (int i = 1; i <= n; i++) {
-                //Step 4
-                for (int j = 1; j <= m; j++) {
-                    // Step 5
-                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
-
-                    // Step 6
-                    d[i, j] = Math.Min(
-                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
-                        d[i - 1, j - 1] + cost);
-                }
-            }
-            // Step 7
-            return d[n, m];
-        }
-
         public static string ArrayToString(Array array) {
             string str = "";
             for (int i = 0; i < array.Length; i++) {
@@ -140,8 +248,17 @@ namespace Nucleus {
             return str;
         }
 
-#if WINFORMS
+        public static string Base64Encode(string plainText) {
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return System.Convert.ToBase64String(plainTextBytes);
+        }
 
+        public static string Base64Decode(string base64EncodedData) {
+            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
+            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+        }
+
+#if WINFORMS
         /// <summary>
         /// This method can be made better
         /// </summary>

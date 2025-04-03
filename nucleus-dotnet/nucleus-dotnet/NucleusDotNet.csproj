@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
-		<TargetFramework>net9.0;net472</TargetFramework>
+		<TargetFrameworks>net9.0;net472</TargetFrameworks>
 		<ApplicationIcon />
 		<StartupObject />
 		<PackageId>distrohelena.nucleus.net</PackageId>
@@ -21,7 +20,7 @@
 	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<DefineConstants>TRACE;NETCORE</DefineConstants>
 	</PropertyGroup>
-	
+
 	<ItemGroup>
 		<Compile Remove="Coop\**" />
 		<EmbeddedResource Remove="Coop\**" />

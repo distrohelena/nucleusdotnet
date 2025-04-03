@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace Nucleus {
     /// <summary>
@@ -17,11 +17,11 @@ namespace Nucleus {
             }
         }
 
-        public static string Name {
-            get {
-                Assembly ass = Assembly.GetEntryAssembly();
-                return ass.GetName().Name;
-            }
-        }
+        // public static string Name {
+        //     get {
+        //         Assembly ass = Assembly.GetEntryAssembly();
+        //         return ass.GetName().Name;
+        //     }
+        // }
     }
 }

@@ -1,45 +1,35 @@
 ﻿#if WINDOWS
-using System;
 using System.Drawing;
 using System.Windows.Forms;
 
 namespace Nucleus.Platform.Windows.Controls {
-    public class CustomTextBox : TextBox {
-        private Color borderColor;
-        private Pen borderPen;
-
+    public class BorderTextBox : TextBox {
+        private Color borderColor = Color.Black;
         public int BorderSize { get; set; } = 2;
 
         public Color BorderColor {
             get { return borderColor; }
             set {
-                if (borderColor != value) {
-                    if (borderPen != null) {
-                        borderPen.Dispose();
-                    }
-                    borderPen = new Pen(value);
-                }
                 borderColor = value;
+                this.Invalidate(); // Forces a repaint
             }
         }
 
-        public CustomTextBox() {
-            base.BorderStyle = System.Windows.Forms.BorderStyle.None;
-
-            BorderColor = Color.Black;
+        public BorderTextBox() {
+            BorderStyle = BorderStyle.None; // Remove default border
+            Padding = new Padding(BorderSize); // Make space for the border
         }
 
-        protected override void OnHandleCreated(EventArgs e) {
-            base.OnHandleCreated(e);
-            //User32Interop.SetWindowRgn(this.Handle, Gdi32Interop.CreateRoundRectRgn(0, 0, this.Width - 5, this.Height, 5, 5), true);
-        }
+        protected override void WndProc(ref Message m) {
+            base.WndProc(ref m);
 
-        protected override void OnPaint(PaintEventArgs e) {
-            Graphics g = e.Graphics;
-            Point loc = this.Location;
-            g.DrawRectangle(borderPen, new Rectangle(loc.X - BorderSize, loc.Y - BorderSize, this.Width + BorderSize, this.Height + BorderSize));
-
-            base.OnPaint(e);
+            if (m.Msg == 0xF) { // WM_PAINT
+                using (Graphics g = Graphics.FromHwnd(this.Handle)) {
+                    using (Pen pen = new Pen(BorderColor, BorderSize)) {
+                        g.DrawRectangle(pen, new Rectangle(0, 0, Width - 1, Height - 1));
+                    }
+                }
+            }
         }
     }
 }

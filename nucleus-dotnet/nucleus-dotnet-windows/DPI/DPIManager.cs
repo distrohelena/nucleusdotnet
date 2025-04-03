@@ -1,4 +1,4 @@
-﻿#if WINFORMS
+﻿#if FORMS
 using Nucleus.Platform.Windows;
 using System;
 using System.Collections.Generic;

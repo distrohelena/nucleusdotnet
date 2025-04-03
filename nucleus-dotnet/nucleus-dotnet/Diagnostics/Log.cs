@@ -91,7 +91,7 @@ namespace Nucleus.Diagnostics {
                     writer.WriteLine("[Header]");
                     writer.WriteLine(now.ToLongDateString());
                     writer.WriteLine(now.ToLongTimeString());
-                    writer.WriteLine($"{Globals.Name} v{Globals.Version}");
+                    // writer.WriteLine($"{Globals.Name} v{Globals.Version}");
                     writer.WriteLine("[PC Specs]");
 
                     writer.WriteLine("[Message]");

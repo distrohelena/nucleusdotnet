@@ -180,13 +180,12 @@ namespace Nucleus.Platform.Windows.Controls {
                 return;
             }
 
-            UserScreen[] screens = ScreensUtil.AllScreens();
+            Rectangle[] screens = ScreensUtil.AllScreensRec();
             Point pos = Cursor.Position;
 
             Rectangle cursorScreen = Rectangle.Empty;
             for (int i = 0; i < screens.Length; i++) {
-                UserScreen user = screens[i];
-                Rectangle bounds = user.MonitorBounds;
+                Rectangle bounds = screens[i];
 
                 if (bounds.Contains(pos)) {
                     cursorScreen = bounds;

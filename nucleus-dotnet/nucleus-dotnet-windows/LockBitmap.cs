@@ -115,6 +115,33 @@ namespace Nucleus.Platform.Windows {
             return clr;
         }
 
+        public void SetPixel(int x, int y, byte r, byte g, byte b) {
+            // Get color components count
+            int cCount = Depth / 8;
+
+            // Get start index of the specified pixel
+            int i = ((y * Width) + x) * cCount;
+
+            if (Depth == 32) // For 32 bpp set Red, Green, Blue and Alpha
+            {
+                Pixels[i] = r;
+                Pixels[i + 1] = g;
+                Pixels[i + 2] = b;
+                Pixels[i + 3] = 255;
+            }
+            if (Depth == 24) // For 24 bpp set Red, Green and Blue
+            {
+                Pixels[i] = r;
+                Pixels[i + 1] = g;
+                Pixels[i + 2] = b;
+            }
+            if (Depth == 8)
+            // For 8 bpp set color value (Red, Green and Blue values are the same)
+            {
+                //Pixels[i] = color.B;
+            }
+        }
+
         /// <summary>
         /// Set the color of the specified pixel
         /// </summary>

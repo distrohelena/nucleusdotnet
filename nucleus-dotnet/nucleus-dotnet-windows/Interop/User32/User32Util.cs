@@ -1,34 +1,18 @@
-﻿#if WINFORMS
+﻿#if WINDOWS
 using Nucleus.Platform.Windows.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 using static Nucleus.Platform.Windows.Interop.User32Interop;
+#if FORMS
+using System.Windows.Forms;
+#endif
 
 namespace Nucleus.Platform.Windows {
     public static class User32Util {
-        public static Control GetFocusControl() {
-            Control focusControl = null;
-            IntPtr focusHandle = User32Interop.GetFocus();
-            if (focusHandle != IntPtr.Zero) {
-                focusControl = Control.FromHandle(focusHandle);
-            }
-            return focusControl;
-        }
 
-        public static bool IsFormFocused(Form form) {
-            //IntPtr hwnd = User32Interop.GetForegroundWindow();
-            //Form foreground = Form.FromHandle(hwnd);
-            //retirif (foreground == form)
-            Control focusControl = GetFocusControl();
-            if (focusControl == null) {
-                return false;
-            }
-            return focusControl.FindForm() == form;
-        }
 
         public static IEnumerable<IntPtr> EnumerateProcessWindowHandles(int processId) {
             var handles = new List<IntPtr>();
@@ -50,38 +34,30 @@ namespace Nucleus.Platform.Windows {
             // http://pinvoke.net/default.aspx/gdi32/GetDeviceCaps.html
         }
 
-        public static float GetDPIScalingFactor() {
-            Graphics g = Graphics.FromHwnd(IntPtr.Zero);
-            IntPtr desktop = g.GetHdc();
-            int LogicalScreenHeight = Gdi32Interop.GetDeviceCaps(desktop, (int)DeviceCap.VERTRES);
-            int PhysicalScreenHeight = Gdi32Interop.GetDeviceCaps(desktop, (int)DeviceCap.DESKTOPVERTRES);
 
-            float ScreenScalingFactor = PhysicalScreenHeight / (float)LogicalScreenHeight;
-
-            return ScreenScalingFactor;
-        }
-
-        public static uint GetDpiForWindow(Form form) {
-            return User32Interop.GetDpiForWindow(form.Handle);
-        }
         public static uint GetDpiForWindow(IntPtr handle) {
             return User32Interop.GetDpiForWindow(handle);
         }
 
-        public static bool GetDPIForMonitor(Display display, ref Point dpi) {
+
+        public static IntPtr GetDPIForMonitor(Display display, out Point dpi) {
             Version os = WindowsVersionInfo.Version;
 
             if (os.Major > 6 || os.Major == 6 && os.Minor >= 3) {
                 uint dpiX = 0;
                 uint dpiY = 0;
-                bool result = User32Interop.GetDpiForMonitor(display.Handle, MonitorDpiType.RawDPI, ref dpiX, ref dpiY);
+                IntPtr result = User32Interop.GetDpiForMonitor(display.Handle, MonitorDpiType.RawDPI, out dpiX, out dpiY);
 
                 dpi = new Point((int)dpiX, (int)dpiY);
                 return result;
             } else {
+#if FORMS
                 int mDpi = (int)(GetDPIScalingFactor() * 96);
                 dpi = new Point(mDpi, mDpi);
-                return true;
+                return IntPtr.Zero;
+#else
+                throw new PlatformNotSupportedException();
+#endif
             }
         }
 
@@ -126,10 +102,11 @@ namespace Nucleus.Platform.Windows {
         }
 
         public static void HideBorder(IntPtr handle) {
-            uint lStyle = User32Interop.GetWindowLong(handle, User32_WS.GWL_STYLE);
+            long lStyle = User32Interop.GetWindowLong(handle, User32_WS.GWL_STYLE);
             lStyle &= ~(User32_WS.WS_CAPTION | User32_WS.WS_BORDER | User32_WS.WS_DLGFRAME | User32_WS.WS_SIZEBOX | User32_WS.WS_THICKFRAME);
             User32Interop.SetWindowLong(handle, User32_WS.GWL_STYLE, lStyle);
         }
+
         public static void HideTaskbar() {
             IntPtr hwnd = User32Interop.FindWindow("Shell_TrayWnd", "");
             User32Interop.ShowWindow(hwnd, WindowShowStyle.Hide);
@@ -137,10 +114,12 @@ namespace Nucleus.Platform.Windows {
             IntPtr hwndOrb = User32Interop.FindWindowEx(IntPtr.Zero, IntPtr.Zero, (IntPtr)0xC017, null);
             User32Interop.ShowWindow(hwndOrb, WindowShowStyle.Hide);
         }
+
         public static void MinimizeEverything() {
             IntPtr lHwnd = User32Interop.FindWindow("Shell_TrayWnd", null);
             User32Interop.SendMessage(lHwnd, User32_WS.WM_COMMAND, User32_WS.MIN_ALL, 0);
         }
+
         public static void ShowTaskBar() {
             IntPtr hwnd = User32Interop.FindWindow("Shell_TrayWnd", "");
             User32Interop.ShowWindow(hwnd, WindowShowStyle.Show);
@@ -148,6 +127,42 @@ namespace Nucleus.Platform.Windows {
             IntPtr hwndOrb = User32Interop.FindWindowEx(IntPtr.Zero, IntPtr.Zero, (IntPtr)0xC017, null);
             User32Interop.ShowWindow(hwndOrb, WindowShowStyle.Show);
         }
+
+#if FORMS
+        public static Control GetFocusControl() {
+            Control focusControl = null;
+            IntPtr focusHandle = User32Interop.GetFocus();
+            if (focusHandle != IntPtr.Zero) {
+                focusControl = Control.FromHandle(focusHandle);
+            }
+            return focusControl;
+        }
+
+        public static bool IsFormFocused(Form form) {
+            //IntPtr hwnd = User32Interop.GetForegroundWindow();
+            //Form foreground = Form.FromHandle(hwnd);
+            //retirif (foreground == form)
+            Control focusControl = GetFocusControl();
+            if (focusControl == null) {
+                return false;
+            }
+            return focusControl.FindForm() == form;
+        }
+        public static float GetDPIScalingFactor() {
+            Graphics g = Graphics.FromHwnd(IntPtr.Zero);
+            IntPtr desktop = g.GetHdc();
+            int LogicalScreenHeight = Gdi32Interop.GetDeviceCaps(desktop, (int)DeviceCap.VERTRES);
+            int PhysicalScreenHeight = Gdi32Interop.GetDeviceCaps(desktop, (int)DeviceCap.DESKTOPVERTRES);
+
+            float ScreenScalingFactor = PhysicalScreenHeight / (float)LogicalScreenHeight;
+
+            return ScreenScalingFactor;
+        }
+
+        public static uint GetDpiForWindow(Form form) {
+            return User32Interop.GetDpiForWindow(form.Handle);
+        }
+#endif
     }
 }
 #endif

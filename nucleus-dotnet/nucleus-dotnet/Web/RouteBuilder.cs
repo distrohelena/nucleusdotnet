@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
 namespace Nucleus.Web {
     public class RouteBuilder {
-        public List<Route> BuildRoute(Assembly baseAssembly) {
+        public static List<Route> BuildRoute(Assembly baseAssembly) {
             List<Route> routes = new List<Route>();
             Type[] allTypes = baseAssembly.GetTypes();
 
@@ -45,6 +45,7 @@ namespace Nucleus.Web {
                                         route.UrlRegex = $"{baseUrl}/{urlRegex}";
                                     }
                                     route.SubPaths = route.UrlRegex.Count(c => c == '/');
+                                    route.RouteOwner = routeManager;
 
                                     route.Callable = (HttpRequest request) => {
                                         Route r = route;

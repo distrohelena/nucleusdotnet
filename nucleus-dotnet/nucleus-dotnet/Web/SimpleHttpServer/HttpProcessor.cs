@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2016 by David Jeske, Barend Erasmus and donated to the public domain
+// Copyright (C) 2016 by David Jeske, Barend Erasmus and donated to the public domain
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -34,7 +34,7 @@ namespace Nucleus.Web {
         }
 
         public void HandleClient(TcpClient tcpClient) {
-            Console.WriteLine($"CLIENT {tcpClient.Client.RemoteEndPoint}");
+            //Console.WriteLine($"CLIENT {tcpClient.Client.RemoteEndPoint}");
 
             Stream inputStream = GetInputStream(tcpClient);
             Stream outputStream = GetOutputStream(tcpClient);
@@ -47,12 +47,12 @@ namespace Nucleus.Web {
                 return;
             }
 
-            Console.WriteLine("Streams on");
+            //Console.WriteLine("Streams on");
 
             // route and handle the request...
             HttpResponse response = RouteRequest(inputStream, outputStream, request);
 
-            Console.WriteLine("{0} {1}", response.StatusCode, request.Url);
+            //Console.WriteLine("{0} {1}", response.StatusCode, request.Url);
             // build a default response for errors
             if (response.Content == null) {
                 if (response.StatusCode != "200") {
@@ -69,7 +69,7 @@ namespace Nucleus.Web {
             inputStream.Close();
             inputStream = null;
 
-            Console.WriteLine($"CLIENT END {tcpClient.Client.RemoteEndPoint}");
+            //Console.WriteLine($"CLIENT END {tcpClient.Client.RemoteEndPoint}");
         }
 
         public void AddRoute(Route route) {
@@ -275,8 +275,9 @@ namespace Nucleus.Web {
         }
 
         private static string Readline(Stream stream) {
-            int next_char;
             string data = "";
+
+            int next_char;
             while (true) {
                 next_char = stream.ReadByte();
                 if (next_char == '\n') { break; }
@@ -284,6 +285,7 @@ namespace Nucleus.Web {
                 if (next_char == -1) { Thread.Sleep(1); continue; };
                 data += Convert.ToChar(next_char);
             }
+
             return data;
         }
 

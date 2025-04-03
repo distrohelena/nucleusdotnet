@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2016 by David Jeske, Barend Erasmus and donated to the public domain
+// Copyright (C) 2016 by David Jeske, Barend Erasmus and donated to the public domain
 // Further modified for Nucleus.Gaming
 
 using System;
@@ -18,9 +18,9 @@ namespace Nucleus.Web {
         private readonly bool IsActive = true;
         private Thread serverThread;
 
-        public HttpServer(int port, List<Route> routes, string path) {
+        public HttpServer(int port, List<Route> routes, string baseDirectory) {
             this.Port = port;
-            this.Processor = new HttpProcessor(path);
+            this.Processor = new HttpProcessor(baseDirectory);
 
             foreach (var route in routes) {
                 this.Processor.AddRoute(route);
@@ -51,6 +51,7 @@ namespace Nucleus.Web {
             while (this.IsActive) {
                 if (Debug) {
                     TcpClient s = this.Listener.AcceptTcpClient();
+                    s.Client.NoDelay = true;
                     Thread thread = new Thread(() => {
                         if (DebugLock) {
                             lock (DebugLocker) {
@@ -65,17 +66,18 @@ namespace Nucleus.Web {
                 } else {
                     try {
                         TcpClient s = this.Listener.AcceptTcpClient();
+                        s.Client.NoDelay = true;
                         Thread thread = new Thread(() => {
                             try {
                                 this.Processor.HandleClient(s);
                             } catch (Exception ex) {
-                                ConsoleU.WriteLine("Exception " + ex, ConsoleColor.Red);
+                                //ConsoleU.WriteLine("Exception " + ex, ConsoleColor.Red);
                             }
                         });
                         thread.Start();
                         Thread.Sleep(1);
                     } catch (Exception ex) {
-                        ConsoleU.WriteLine("Exception " + ex, ConsoleColor.Red);
+                        //ConsoleU.WriteLine("Exception " + ex, ConsoleColor.Red);
                     }
                 }
             }

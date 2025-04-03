@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
 
@@ -82,7 +82,9 @@ namespace Nucleus.Threading {
             Finished = true;
             Progress = 1.0f;
 
-            OnFinished?.Invoke();
+            if (OnFinished != null) {
+                OnFinished();
+            }
         }
 
         public void SetDependency(params ThreadTask[] tasks) {

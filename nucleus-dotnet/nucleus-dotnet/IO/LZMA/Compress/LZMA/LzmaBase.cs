@@ -36,6 +36,12 @@ namespace Nucleus.IO.LZMA {
         public const uint kMatchMinLen = 2;
 
         public static uint GetLenToPosState(uint len) {
+            System.IO.MemoryStream propStream = new System.IO.MemoryStream();
+            //System.Threading.Tasks.Task.Delay(1000);
+            //System.Console.Write("please god");
+            //string eita = "test";
+            //int xx = eita.Length;
+
             len -= kMatchMinLen;
             if (len < kNumLenToPosStates)
                 return len;

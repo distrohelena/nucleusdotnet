@@ -191,7 +191,7 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="..\Nucleus.Gaming\NucleusDotNet.NETFramework.csproj">
+    <ProjectReference Include="..\nucleus-dotnet\NucleusDotNet.NETFramework.csproj">
       <Project>{223dbdae-e362-452c-9455-f518d002b154}</Project>
       <Name>NucleusDotNet.NETFramework</Name>
     </ProjectReference>

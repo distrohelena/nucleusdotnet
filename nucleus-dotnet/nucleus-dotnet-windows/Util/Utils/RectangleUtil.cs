@@ -16,14 +16,6 @@ namespace Nucleus {
             return new Rectangle((int)x, (int)y, (int)width, (int)height);
         }
 
-        public static Rectangle Union(params UserScreen[] rects) {
-            Rectangle r = new Rectangle();
-            for (int i = 0; i < rects.Length; i++) {
-                r = Rectangle.Union(r, rects[i].MonitorBounds);
-            }
-            return r;
-        }
-
         public static Rectangle Union(params Rectangle[] rects) {
             Rectangle r = new Rectangle();
             for (int i = 0; i < rects.Length; i++) {

@@ -14,33 +14,28 @@ using System.Threading;
 using System.Text;
 using System.Configuration;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace Nucleus.Platform.Windows {
-    /// <summary>
-    /// contains collected window info
-    /// </summary>
-	public struct Window {
-        public string path;
-        public string text;
-        public string internal_text;
-        public string class_name;
-        public int level;
-        public int parent_id;
-    }
-
-
     public class EnumWindows {
-        public ArrayList Windows = new ArrayList();
+        public List<Window> Windows = new List<Window>();
 
         /// <summary>
         /// enum all windows including child windows
         /// </summary>
-        /// <param name="print_to_log"></param>
-		public EnumWindows(bool print_to_log) {
-            //Print2Log = print_to_log;
+		public EnumWindows() {
             Windows.Clear();
-            Functions.EnumWindows(new Functions.EnumProc(this.enum_window_call_back), 0);
-            //			Message.Inform("Completed");
+
+            Functions.EnumWindows(new Functions.EnumProc(this.enumWindowCallback), 0);
+        }
+
+        /// <summary>
+        /// enum all windows including child windows
+        /// </summary>
+        public EnumWindows(IntPtr parentWindow) {
+            Windows.Clear();
+
+            Functions.EnumChildWindows(parentWindow, new Functions.EnumProc(this.enumChildWindowCallback), 0);
         }
 
         /// <summary>
@@ -49,27 +44,28 @@ namespace Nucleus.Platform.Windows {
         /// <param name="hwnd"></param>
         /// <param name="lValue"></param>
         /// <returns></returns>
-		bool enum_window_call_back(IntPtr hwnd, int lValue) {
-            Window w = new Window();
+		private bool enumWindowCallback(IntPtr hwnd, int lValue) {
+            try {
+                Window w = new Window();
+                w.hwnd = hwnd;
 
-            w.level = 0;
-            w.parent_id = -1;
+                w.level = 0;
+                w.parent_id = -1;
 
-            StringBuilder s = new StringBuilder(255); ;
+                StringBuilder s = new StringBuilder(255); ;
 
-            Functions.GetClassName(hwnd, s, 255);
-            w.class_name = s.ToString();
-            Functions.GetWindowText(hwnd, s, 255);
-            w.text = s.ToString();
-            Functions.InternalGetWindowText(hwnd, s, 255);
-            w.internal_text = s.ToString();
-            w.path = "[" + w.text + "]";
+                Functions.GetClassName(hwnd, s, 255);
+                w.class_name = s.ToString();
+                Functions.GetWindowText(hwnd, s, 255);
+                w.text = s.ToString();
+                Functions.InternalGetWindowText(hwnd, s, 255);
+                w.internal_text = s.ToString();
+                w.path = "[" + w.text + "]";
 
-            Windows.Add(w);
+                Windows.Add(w);
 
-            //Message.Write2Log(w.level + " " + w.path + " - " + w.class_name);
-
-            Functions.EnumChildWindows(hwnd, new Functions.EnumProc(this.enum_child_window_call_back), Windows.Count - 1);
+                Functions.EnumChildWindows(hwnd, new Functions.EnumProc(this.enumChildWindowCallback), Windows.Count - 1);
+            } catch { }
 
             return true;
         }
@@ -80,27 +76,27 @@ namespace Nucleus.Platform.Windows {
         /// <param name="hwnd"></param>
         /// <param name="parent_id"></param>
         /// <returns></returns>
-        bool enum_child_window_call_back(IntPtr hwnd, int parent_id) {
-            Window w = new Window();
+        bool enumChildWindowCallback(IntPtr hwnd, int parent_id) {
+            try {
+                Window w = new Window();
+                w.hwnd = hwnd;
+                w.level = ((Window)Windows[parent_id]).level + 1;
+                w.parent_id = parent_id;
 
-            w.level = ((Window)Windows[parent_id]).level + 1;
-            w.parent_id = parent_id;
+                StringBuilder s = new StringBuilder(255);
 
-            StringBuilder s = new StringBuilder(255);
+                Functions.GetClassName(hwnd, s, 255);
+                w.class_name = s.ToString();
+                Functions.GetWindowText(hwnd, s, 255);
+                w.text = s.ToString();
+                Functions.InternalGetWindowText(hwnd, s, 255);
+                w.internal_text = s.ToString();
+                w.path = ((Window)Windows[parent_id]).path + "[" + w.text + "]";
 
-            Functions.GetClassName(hwnd, s, 255);
-            w.class_name = s.ToString();
-            Functions.GetWindowText(hwnd, s, 255);
-            w.text = s.ToString();
-            Functions.InternalGetWindowText(hwnd, s, 255);
-            w.internal_text = s.ToString();
-            w.path = ((Window)Windows[parent_id]).path + "[" + w.text + "]";
+                Windows.Add(w);
 
-            Windows.Add(w);
-
-            //Message.Write2Log(w.level + " " + w.path + " - " + w.class_name);
-
-            Functions.EnumChildWindows(hwnd, new Functions.EnumProc(this.enum_child_window_call_back), Windows.Count - 1);
+                Functions.EnumChildWindows(hwnd, new Functions.EnumProc(this.enumChildWindowCallback), Windows.Count - 1);
+            } catch { }
 
             return true;
         }

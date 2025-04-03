@@ -1,9 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Nucleus {
     public static class ArrayUtil {
         public static bool IsContentsEqual<T>(T[] a, T[] b) {
@@ -33,6 +27,19 @@ namespace Nucleus {
             }
 
             return final;
+        }
+
+        public static string ToString<T>(T[] data) {
+            string str = "";
+
+            for (int i = 0; i < data.Length; i++) {
+                str += data[i].ToString();
+                if (i != data.Length - 1) {
+                    str += ", ";
+                }
+            }
+
+            return str;
         }
     }
 }

@@ -1,17 +1,26 @@
 ﻿#if WINDOWS
 using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
 namespace Nucleus.Platform.Windows.Controls {
     public class ImageButton : UserControl {
+        public Button Button { get; private set; }
+
+        [Browsable(true)]
         public Image Image { get; set; }
 
-        public Button Button { get; private set; }
+        [Browsable(true)]
+        public override string Text {
+            get { return Button.Text; }
+            set { Button.Text = value; }
+        }
 
         public ImageButton() {
             Button = new Button();
             Button.FlatStyle = FlatStyle.Flat;
+            Button.TextAlign = ContentAlignment.BottomCenter;
 
             Button.FlatAppearance.BorderColor = Color.FromArgb(255, 200, 200, 200);
             Button.FlatAppearance.BorderSize = 1;

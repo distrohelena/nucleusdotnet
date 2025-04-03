@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 
 namespace Nucleus {
@@ -14,6 +14,7 @@ namespace Nucleus {
             string cmd = string.Format("mklink /d \"{0}\" \"{1}\"", toDir, fromDir);
             ExecuteCommand(fromDir, out exitCode, cmd);
         }
+
         public static void MkLinkFile(string fromFile, string toFile, out int exitCode) {
             string cmd = string.Format("mklink \"{0}\" \"{1}\"", toFile, fromFile);
             ExecuteCommand(fromFile, out exitCode, cmd);
