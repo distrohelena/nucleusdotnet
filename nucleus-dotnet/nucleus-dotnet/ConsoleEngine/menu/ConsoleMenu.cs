@@ -65,10 +65,10 @@ namespace Nucleus.ConsoleEngine {
                     SelectRelative(OrderedByVertical(), 1);
                     break;
                 case ConsoleKey.LeftArrow:
-                    SelectRelative(OrderedByHorizontal(), -1);
+                    SelectHorizontal(-1);
                     break;
                 case ConsoleKey.RightArrow:
-                    SelectRelative(OrderedByHorizontal(), 1);
+                    SelectHorizontal(1);
                     break;
                 case ConsoleKey.Enter:
                     _selectedOption?.Callback?.Invoke();
@@ -130,22 +130,6 @@ namespace Nucleus.ConsoleEngine {
             return _orderedBuffer;
         }
 
-        private List<ConsoleMenuOption> OrderedByHorizontal() {
-            _orderedBuffer.Clear();
-            _orderedBuffer.AddRange(Options);
-            int containerHeight = Graphics.Height;
-            int containerWidth = Graphics.Width;
-            _orderedBuffer.Sort((a, b) => {
-                int xCompare = ComputeEffectiveX(a, containerWidth).CompareTo(ComputeEffectiveX(b, containerWidth));
-                if (xCompare != 0) {
-                    return xCompare;
-                }
-
-                return ComputeEffectiveY(a, containerHeight).CompareTo(ComputeEffectiveY(b, containerHeight));
-            });
-            return _orderedBuffer;
-        }
-
         private static int ComputeEffectiveY(ConsoleMenuOption option, int containerHeight) {
             ConsoleAnchorStyles anchor = option.Anchor;
             bool anchorTop = anchor.HasFlag(ConsoleAnchorStyles.Top);
@@ -168,6 +152,51 @@ namespace Nucleus.ConsoleEngine {
             }
 
             return option.Location.X;
+        }
+
+        private void SelectHorizontal(int direction) {
+            if (_selectedOption == null) {
+                EnsureSelectionValid();
+                return;
+            }
+
+            int containerWidth = Graphics.Width;
+            int containerHeight = Graphics.Height;
+            ConsoleMenuOption current = _selectedOption;
+
+            int currentX = ComputeEffectiveX(current, containerWidth);
+            int currentY = ComputeEffectiveY(current, containerHeight);
+
+            ConsoleMenuOption? best = null;
+            int bestDeltaX = int.MaxValue;
+            int bestDeltaY = int.MaxValue;
+
+            for (int i = 0; i < Options.Count; i++) {
+                ConsoleMenuOption candidate = Options[i];
+                if (ReferenceEquals(candidate, current)) {
+                    continue;
+                }
+
+                int candidateX = ComputeEffectiveX(candidate, containerWidth);
+                int candidateY = ComputeEffectiveY(candidate, containerHeight);
+
+                int deltaX = direction > 0 ? candidateX - currentX : currentX - candidateX;
+                if (deltaX <= 0) {
+                    continue;
+                }
+
+                int deltaY = Math.Abs(candidateY - currentY);
+
+                if (deltaX < bestDeltaX || (deltaX == bestDeltaX && deltaY < bestDeltaY)) {
+                    best = candidate;
+                    bestDeltaX = deltaX;
+                    bestDeltaY = deltaY;
+                }
+            }
+
+            if (best != null) {
+                _selectedOption = best;
+            }
         }
 
         private void EnsureSelectionValid() {
