@@ -6,6 +6,7 @@ namespace Nucleus.ConsoleEngine {
         public bool IsPassword { get; set; }
         public string Input { get; set; } = "";
 
+        // Simple cursor timer so focused inputs blink at a steady cadence.
         private double timer;
         private bool tick;
 
@@ -26,91 +27,63 @@ namespace Nucleus.ConsoleEngine {
                 tick = !tick;
             }
 
-            string text = GetRenderText(menu);
+            Rectangle bounds = GetAnchoredBounds(menu);
+            bool hasBorder = BorderColor != null;
 
-            string input = Input;
-            if (menu.Offset) {
-                if (IsPassword) {
-                    input = StringUtil.Repeat("*", input.Length);
-                }
-                input = " " + input;
-            } else if (IsPassword) {
-                input = StringUtil.Repeat("*", input.Length);
-            }
+            int offsetX = hasBorder ? 1 : 0;
+            int offsetY = hasBorder ? 1 : 0;
+            int interiorWidth = Math.Max(1, bounds.Width - offsetX - (hasBorder ? 1 : 0));
 
-            int offsetX = 0;
-            int offsetY = 0;
             if (selected) {
                 menu.Graphics.FillRectangle(
-                    (Location.X * menu.Size.Width) + menu.Origin.X,
-                    (Location.Y * menu.Size.Height) + menu.Origin.Y,
-                    menu.Size.Width,
-                    menu.Size.Height,
+                    bounds.X,
+                    bounds.Y,
+                    bounds.Width,
+                    bounds.Height,
                     ' ',
                     menu.SelectedColor,
                     menu.SelectedBgColor
                 );
-
-                if (BorderColor != null) {
-                    menu.Graphics.DrawRectangle(
-                        (Location.X * menu.Size.Width) + menu.Origin.X,
-                        (Location.Y * menu.Size.Height) + menu.Origin.Y,
-                        menu.Size.Width,
-                        menu.Size.Height,
-                        BorderColor.Value,
-                        menu.SelectedBgColor
-                    );
-                    offsetX = 1;
-                    offsetY = 1;
-                }
-
-                if (tick) {
-                    input += "_";
-                }
-
-                menu.Graphics.DrawString(
-                    input,
-                    (Location.X * menu.Size.Width) + menu.Origin.X + offsetX,
-                    (Location.Y * menu.Size.Height) + menu.Origin.Y + offsetY,
-                    menu.SelectedColor,
-                    menu.SelectedBgColor
-                );
-
-                menu.Graphics.DrawString(
-                    text,
-                    (Location.X * menu.Size.Width) + menu.Origin.X + offsetX,
-                    (Location.Y * menu.Size.Height) + menu.Origin.Y + offsetY + 1,
-                    menu.SelectedColor,
-                    menu.SelectedBgColor
-                );
-            } else {
-                if (BorderColor != null) {
-                    menu.Graphics.DrawRectangle(
-                        (Location.X * menu.Size.Width) + menu.Origin.X,
-                        (Location.Y * menu.Size.Height) + menu.Origin.Y,
-                        menu.Size.Width,
-                        menu.Size.Height,
-                        BorderColor.Value,
-                        BackgroundColor
-                    );
-                    offsetX = 1;
-                    offsetY = 1;
-                }
-
-                menu.Graphics.DrawString(
-                    input,
-                    (Location.X * menu.Size.Width) + menu.Origin.X + offsetX,
-                    (Location.Y * menu.Size.Height) + menu.Origin.Y + offsetY,
-                    Color,
+            } else if (BackgroundColor != null) {
+                menu.Graphics.FillRectangle(
+                    bounds.X,
+                    bounds.Y,
+                    bounds.Width,
+                    bounds.Height,
+                    ' ',
+                    null,
                     BackgroundColor
                 );
+            }
 
+            if (hasBorder) {
+                menu.Graphics.DrawRectangle(
+                    bounds.X,
+                    bounds.Y,
+                    bounds.Width,
+                    bounds.Height,
+                    BorderColor.Value,
+                    selected ? menu.SelectedBgColor : BackgroundColor
+                );
+            }
+
+            string inputLine = BuildInputLine(menu, interiorWidth, selected && tick);
+            menu.Graphics.DrawString(
+                inputLine,
+                bounds.X + offsetX,
+                bounds.Y + offsetY,
+                selected ? menu.SelectedColor : Color,
+                selected ? menu.SelectedBgColor : BackgroundColor
+            );
+
+            if (bounds.Height - offsetY > 1) {
+                string label = BuildDisplayText(menu, interiorWidth);
                 menu.Graphics.DrawString(
-                    text,
-                    (Location.X * menu.Size.Width) + menu.Origin.X + offsetX,
-                    (Location.Y * menu.Size.Height) + menu.Origin.Y + offsetY + 1,
-                    Color,
-                    BackgroundColor
+                    label,
+                    bounds.X + offsetX,
+                    bounds.Y + offsetY + 1,
+                    selected ? menu.SelectedColor : Color,
+                    selected ? menu.SelectedBgColor : BackgroundColor
                 );
             }
         }
@@ -125,6 +98,7 @@ namespace Nucleus.ConsoleEngine {
                 Input += " ";
             }
 
+            // Convert single character keys to lowercase for simplicity; ignore modifiers.
             string value = key.ToString().ToLowerInvariant();
             if (value.StartsWith("d") && value.Length == 2) {
                 value = value.Substring(1);
@@ -132,6 +106,45 @@ namespace Nucleus.ConsoleEngine {
                 return;
             }
             Input += value;
+        }
+
+        private string BuildInputLine(ConsoleMenu menu, int availableWidth, bool appendCursor) {
+            if (availableWidth <= 0) {
+                return string.Empty;
+            }
+
+            string rendered = Input ?? string.Empty;
+            if (IsPassword) {
+                rendered = StringUtil.Repeat("*", rendered.Length);
+            }
+
+            if (menu.Offset) {
+                rendered = " " + rendered;
+            }
+
+            // Append the blinking cursor without exceeding the visual bounds.
+            if (appendCursor) {
+                if (rendered.Length >= availableWidth) {
+                    int cursorWidth = Math.Max(availableWidth - 1, 0);
+                    rendered = cursorWidth > 0 ? rendered.Substring(0, cursorWidth) : string.Empty;
+                    if (availableWidth > 0) {
+                        rendered += "_";
+                    }
+                } else {
+                    rendered += "_";
+                }
+            }
+
+            if (rendered.Length > availableWidth) {
+                rendered = rendered.Substring(0, availableWidth);
+            } else if (menu.FillText) {
+                int pad = availableWidth - rendered.Length;
+                if (pad > 0) {
+                    rendered += StringUtil.Repeat(" ", pad);
+                }
+            }
+
+            return rendered;
         }
     }
 }
