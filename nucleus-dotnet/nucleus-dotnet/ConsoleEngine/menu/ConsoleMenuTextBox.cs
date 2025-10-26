@@ -10,6 +10,9 @@ namespace Nucleus.ConsoleEngine {
         private double timer;
         private bool tick;
 
+        public ConsoleColor? InputColor { get; set; }
+        public ConsoleColor? InputBgColor { get; set; }
+
         public ConsoleMenuTextBox(
             Point location,
             string text,
@@ -72,8 +75,8 @@ namespace Nucleus.ConsoleEngine {
                 inputLine,
                 bounds.X + offsetX,
                 bounds.Y + offsetY,
-                selected ? menu.SelectedColor : Color,
-                selected ? menu.SelectedBgColor : BackgroundColor
+                selected ? menu.SelectedColor : InputColor,
+                selected ? menu.SelectedBgColor : InputBgColor
             );
 
             if (bounds.Height - offsetY > 1) {
@@ -140,7 +143,7 @@ namespace Nucleus.ConsoleEngine {
             } else if (menu.FillText) {
                 int pad = availableWidth - rendered.Length;
                 if (pad > 0) {
-                    rendered += StringUtil.Repeat(" ", pad);
+                    //rendered += StringUtil.Repeat(" ", pad);
                 }
             }
 

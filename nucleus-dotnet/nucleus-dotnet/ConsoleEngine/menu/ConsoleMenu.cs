@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 
 namespace Nucleus.ConsoleEngine {
     public class ConsoleMenu {
-        public List<ConsoleMenuOption> Options { get; set; }
+        public List<ConsoleControl> Controls { get; set; }
 
         private ConsoleMenuOption? _selectedOption;
         private int _lastMeasuredWidth;
@@ -24,7 +23,7 @@ namespace Nucleus.ConsoleEngine {
             // Menus share a single graphics surface provided by the caller.
             this.Graphics = graphics;
 
-            Options = new List<ConsoleMenuOption>();
+            Controls = new List<ConsoleControl>();
 
             SelectedColor = ConsoleColor.White;
             SelectedBgColor = ConsoleColor.Magenta;
@@ -41,15 +40,16 @@ namespace Nucleus.ConsoleEngine {
             EnsureAnchorsUpToDate();
             EnsureSelectionValid();
 
-            for (int i = 0; i < Options.Count; i++) {
-                ConsoleMenuOption option = Options[i];
-                bool selected = ReferenceEquals(option, _selectedOption);
-                option.Render(this, selected, elapsed);
+            for (int i = 0; i < Controls.Count; i++) {
+                ConsoleControl control = Controls[i];
+                ConsoleMenuOption? option = control as ConsoleMenuOption;
+                bool selected = option != null && ReferenceEquals(option, _selectedOption);
+                control.Render(this, selected, elapsed);
             }
         }
 
         public void ReceiveInput(ConsoleKey key) {
-            if (Options.Count == 0) {
+            if (!Controls.Any(option => option.IsSelectable)) {
                 _selectedOption = null;
                 return;
             }
@@ -59,10 +59,10 @@ namespace Nucleus.ConsoleEngine {
             // Map arrow navigation into ordered traversals so focus follows the layout.
             switch (key) {
                 case ConsoleKey.UpArrow:
-                    SelectRelative(OrderedByVertical(), -1);
+                    SelectVertical(-1);
                     break;
                 case ConsoleKey.DownArrow:
-                    SelectRelative(OrderedByVertical(), 1);
+                    SelectVertical(1);
                     break;
                 case ConsoleKey.LeftArrow:
                     SelectHorizontal(-1);
@@ -82,7 +82,7 @@ namespace Nucleus.ConsoleEngine {
         public ConsoleMenuOption? SelectedOption {
             get => _selectedOption;
             set {
-                if (value != null && !Options.Contains(value)) {
+                if (value != null && (!Controls.Contains(value) || !value.IsSelectable)) {
                     _selectedOption = null;
                     EnsureSelectionValid();
                 } else {
@@ -95,28 +95,13 @@ namespace Nucleus.ConsoleEngine {
             _selectedOption = null;
         }
 
-        private void SelectRelative(List<ConsoleMenuOption> ordered, int delta) {
-            if (ordered.Count == 0) {
-                return;
-            }
-
-            int currentIndex = _selectedOption != null ? ordered.IndexOf(_selectedOption) : -1;
-            if (currentIndex == -1) {
-                _selectedOption = ordered[0];
-                return;
-            }
-
-            int nextIndex = currentIndex + delta;
-            if (nextIndex < 0 || nextIndex >= ordered.Count) {
-                return;
-            }
-
-            _selectedOption = ordered[nextIndex];
-        }
-
         private List<ConsoleMenuOption> OrderedByVertical() {
             _orderedBuffer.Clear();
-            _orderedBuffer.AddRange(Options);
+            for (int i = 0; i < Controls.Count; i++) {
+                if (Controls[i] is ConsoleMenuOption option && option.IsSelectable) {
+                    _orderedBuffer.Add(option);
+                }
+            }
             int containerHeight = Graphics.Height;
             int containerWidth = Graphics.Width;
             _orderedBuffer.Sort((a, b) => {
@@ -130,7 +115,7 @@ namespace Nucleus.ConsoleEngine {
             return _orderedBuffer;
         }
 
-        private static int ComputeEffectiveY(ConsoleMenuOption option, int containerHeight) {
+        private static int ComputeEffectiveY(ConsoleControl option, int containerHeight) {
             ConsoleAnchorStyles anchor = option.Anchor;
             bool anchorTop = anchor.HasFlag(ConsoleAnchorStyles.Top);
             bool anchorBottom = anchor.HasFlag(ConsoleAnchorStyles.Bottom);
@@ -142,7 +127,7 @@ namespace Nucleus.ConsoleEngine {
             return option.Location.Y;
         }
 
-        private static int ComputeEffectiveX(ConsoleMenuOption option, int containerWidth) {
+        private static int ComputeEffectiveX(ConsoleControl option, int containerWidth) {
             ConsoleAnchorStyles anchor = option.Anchor;
             bool anchorLeft = anchor.HasFlag(ConsoleAnchorStyles.Left);
             bool anchorRight = anchor.HasFlag(ConsoleAnchorStyles.Right);
@@ -165,46 +150,151 @@ namespace Nucleus.ConsoleEngine {
             ConsoleMenuOption current = _selectedOption;
 
             int currentX = ComputeEffectiveX(current, containerWidth);
-            int currentY = ComputeEffectiveY(current, containerHeight);
+            int currentTop = ComputeEffectiveY(current, containerHeight);
+            int currentHeight = Math.Max(1, current.Dimensions.Height);
+            int currentBottom = currentTop + currentHeight;
+            int currentCenterY = currentTop + (currentHeight / 2);
 
-            ConsoleMenuOption? best = null;
-            int bestDeltaX = int.MaxValue;
-            int bestDeltaY = int.MaxValue;
+            ConsoleMenuOption? bestAligned = null;
+            int bestAlignedDeltaX = int.MaxValue;
+            int bestAlignedDeltaY = int.MaxValue;
+            ConsoleMenuOption? bestFallback = null;
+            int bestFallbackDeltaX = int.MaxValue;
+            int bestFallbackDeltaY = int.MaxValue;
 
-            for (int i = 0; i < Options.Count; i++) {
-                ConsoleMenuOption candidate = Options[i];
+            for (int i = 0; i < Controls.Count; i++) {
+                if (Controls[i] is not ConsoleMenuOption candidate) {
+                    continue;
+                }
                 if (ReferenceEquals(candidate, current)) {
+                    continue;
+                }
+                if (!candidate.IsSelectable) {
                     continue;
                 }
 
                 int candidateX = ComputeEffectiveX(candidate, containerWidth);
-                int candidateY = ComputeEffectiveY(candidate, containerHeight);
+                int candidateTop = ComputeEffectiveY(candidate, containerHeight);
+                int candidateHeight = Math.Max(1, candidate.Dimensions.Height);
+                int candidateBottom = candidateTop + candidateHeight;
+                int candidateCenterY = candidateTop + (candidateHeight / 2);
 
                 int deltaX = direction > 0 ? candidateX - currentX : currentX - candidateX;
                 if (deltaX <= 0) {
                     continue;
                 }
 
-                int deltaY = Math.Abs(candidateY - currentY);
+                int deltaY = Math.Abs(candidateCenterY - currentCenterY);
+                bool verticallyAligned = candidateBottom > currentTop && candidateTop < currentBottom;
 
-                if (deltaX < bestDeltaX || (deltaX == bestDeltaX && deltaY < bestDeltaY)) {
-                    best = candidate;
-                    bestDeltaX = deltaX;
-                    bestDeltaY = deltaY;
+                if (verticallyAligned) {
+                    if (deltaX < bestAlignedDeltaX || (deltaX == bestAlignedDeltaX && deltaY < bestAlignedDeltaY)) {
+                        bestAligned = candidate;
+                        bestAlignedDeltaX = deltaX;
+                        bestAlignedDeltaY = deltaY;
+                    }
+                } else if (deltaX < bestFallbackDeltaX || (deltaX == bestFallbackDeltaX && deltaY < bestFallbackDeltaY)) {
+                    bestFallback = candidate;
+                    bestFallbackDeltaX = deltaX;
+                    bestFallbackDeltaY = deltaY;
                 }
             }
 
-            if (best != null) {
-                _selectedOption = best;
+            // Prefer options that overlap vertically with the current focus before falling back.
+            if (bestAligned != null) {
+                _selectedOption = bestAligned;
+            } else if (bestFallback != null) {
+                _selectedOption = bestFallback;
+            }
+        }
+
+        private void SelectVertical(int direction) {
+            if (_selectedOption == null) {
+                EnsureSelectionValid();
+                return;
+            }
+
+            int containerWidth = Graphics.Width;
+            int containerHeight = Graphics.Height;
+            ConsoleMenuOption current = _selectedOption;
+
+            int currentTop = ComputeEffectiveY(current, containerHeight);
+            int currentHeight = Math.Max(1, current.Dimensions.Height);
+            int currentBottom = currentTop + currentHeight;
+            int currentCenterY = currentTop + (currentHeight / 2);
+
+            int currentLeft = ComputeEffectiveX(current, containerWidth);
+            int currentWidth = Math.Max(1, current.Dimensions.Width);
+            int currentRight = currentLeft + currentWidth;
+            int currentCenterX = currentLeft + (currentWidth / 2);
+
+            ConsoleMenuOption? bestAligned = null;
+            int bestAlignedDeltaY = int.MaxValue;
+            int bestAlignedDeltaX = int.MaxValue;
+            ConsoleMenuOption? bestFallback = null;
+            int bestFallbackDeltaY = int.MaxValue;
+            int bestFallbackDeltaX = int.MaxValue;
+
+            for (int i = 0; i < Controls.Count; i++) {
+                if (Controls[i] is not ConsoleMenuOption candidate) {
+                    continue;
+                }
+                if (ReferenceEquals(candidate, current)) {
+                    continue;
+                }
+                if (!candidate.IsSelectable) {
+                    continue;
+                }
+
+                int candidateTop = ComputeEffectiveY(candidate, containerHeight);
+                int candidateHeight = Math.Max(1, candidate.Dimensions.Height);
+                int candidateBottom = candidateTop + candidateHeight;
+                int candidateCenterY = candidateTop + (candidateHeight / 2);
+
+                int candidateLeft = ComputeEffectiveX(candidate, containerWidth);
+                int candidateWidth = Math.Max(1, candidate.Dimensions.Width);
+                int candidateRight = candidateLeft + candidateWidth;
+                int candidateCenterX = candidateLeft + (candidateWidth / 2);
+
+                int deltaY = direction < 0
+                    ? currentCenterY - candidateCenterY
+                    : candidateCenterY - currentCenterY;
+
+                if (deltaY <= 0) {
+                    continue;
+                }
+
+                int deltaX = Math.Abs(candidateCenterX - currentCenterX);
+                bool horizontallyAligned = candidateRight > currentLeft && candidateLeft < currentRight;
+
+                if (horizontallyAligned) {
+                    if (deltaY < bestAlignedDeltaY || (deltaY == bestAlignedDeltaY && deltaX < bestAlignedDeltaX)) {
+                        bestAligned = candidate;
+                        bestAlignedDeltaY = deltaY;
+                        bestAlignedDeltaX = deltaX;
+                    }
+                } else if (deltaY < bestFallbackDeltaY || (deltaY == bestFallbackDeltaY && deltaX < bestFallbackDeltaX)) {
+                    bestFallback = candidate;
+                    bestFallbackDeltaY = deltaY;
+                    bestFallbackDeltaX = deltaX;
+                }
+            }
+
+            if (bestAligned != null) {
+                _selectedOption = bestAligned;
+            } else if (bestFallback != null) {
+                _selectedOption = bestFallback;
             }
         }
 
         private void EnsureSelectionValid() {
-            if (_selectedOption != null && Options.Contains(_selectedOption)) {
+            if (_selectedOption != null && Controls.Contains(_selectedOption) && _selectedOption.IsSelectable) {
                 return;
             }
 
-            _selectedOption = Options.FirstOrDefault();
+            _selectedOption = Controls
+                .OfType<ConsoleMenuOption>()
+                .FirstOrDefault(option => option.IsSelectable);
         }
 
         private void EnsureAnchorsUpToDate() {
@@ -216,8 +306,8 @@ namespace Nucleus.ConsoleEngine {
             }
 
             // When the console size changes we recalc anchor offsets so options stay aligned.
-            for (int i = 0; i < Options.Count; i++) {
-                Options[i].ResetAnchorReference();
+            for (int i = 0; i < Controls.Count; i++) {
+                Controls[i].ResetAnchorReference();
             }
 
             _lastMeasuredWidth = width;

@@ -19,6 +19,10 @@ namespace Nucleus.ConsoleEngine {
         private ConsolePixel[,] canvas;
         private Size size;
         private Point offset;
+        private readonly bool useAnsiSequences;
+        private readonly ConsoleColor defaultForeground;
+        private readonly ConsoleColor defaultBackground;
+        private bool cursorPositioningFailed;
 
         public ConsoleColor? BackgroundColor { get; set; }
 
@@ -26,8 +30,11 @@ namespace Nucleus.ConsoleEngine {
         public int Height => size.Height;
         public Size Size => size;
 
-        public ConsoleGraphics(int width, int height) {
+        public ConsoleGraphics(int width, int height, bool enableAnsiSequences = true) {
             Console.OutputEncoding = Encoding.UTF8;
+            useAnsiSequences = enableAnsiSequences;
+            defaultForeground = SafeGetColor(() => Console.ForegroundColor, ConsoleColor.Gray);
+            defaultBackground = SafeGetColor(() => Console.BackgroundColor, ConsoleColor.Black);
             Resize(width, height);
         }
 
@@ -214,8 +221,16 @@ namespace Nucleus.ConsoleEngine {
                 return;
             }
 
-            Console.CursorVisible = false;
-            Console.SetCursorPosition(0, 0);
+            if (useAnsiSequences) {
+                RenderAnsi();
+            } else {
+                RenderBasic();
+            }
+        }
+
+        void RenderAnsi() {
+            TrySetCursorVisibility(false);
+            SetCursorPositionSafe(0, 0);
 
             StringBuilder buffer = new StringBuilder(size.Width * size.Height + size.Height);
 
@@ -254,15 +269,148 @@ namespace Nucleus.ConsoleEngine {
                 }
             }
 
-            Console.Write(buffer.ToString());
-            Console.SetCursorPosition(0, 0);
+            SafeConsoleWrite(buffer.ToString());
+            SetCursorPositionSafe(0, 0);
+            TryResetConsoleColors();
+        }
 
-            Console.ResetColor();
+        void RenderBasic() {
+            TrySetCursorVisibility(false);
+
+            bool repositionSupported = !cursorPositioningFailed && SetCursorPositionSafe(0, 0);
+            if (!repositionSupported) {
+                cursorPositioningFailed = true;
+            }
+
+            ConsoleColor currentForeground = defaultForeground;
+            ConsoleColor currentBackground = defaultBackground;
+
+            for (int y = 0; y < size.Height; y++) {
+                if (repositionSupported) {
+                    if (!SetCursorPositionSafe(0, y)) {
+                        repositionSupported = false;
+                        cursorPositioningFailed = true;
+                    }
+                }
+
+                for (int x = 0; x < size.Width; x++) {
+                    ConsolePixel pixel = canvas[x, y];
+
+                    ConsoleColor targetForeground = pixel.ForegroundColor ?? defaultForeground;
+                    ConsoleColor targetBackground = pixel.BackgroundColor ?? BackgroundColor ?? defaultBackground;
+
+                    SetConsoleForeground(ref currentForeground, targetForeground);
+                    SetConsoleBackground(ref currentBackground, targetBackground);
+
+                    char outputChar = pixel.Character == '\0' ? ' ' : pixel.Character;
+                    SafeConsoleWrite(outputChar);
+                    canvas[x, y] = new ConsolePixel(' ');
+                }
+
+                if (!repositionSupported) {
+                    SafeConsoleWrite(Environment.NewLine);
+                }
+            }
+
+            if (repositionSupported) {
+                SetCursorPositionSafe(0, 0);
+            }
+
+            ResetConsoleColors(currentForeground, currentBackground);
         }
 
         private void SetPixelIfVisible(int x, int y, ConsolePixel pixel) {
             if (x >= 0 && x < size.Width && y >= 0 && y < size.Height) {
                 canvas[x, y] = pixel;
+            }
+        }
+
+        private void TrySetCursorVisibility(bool visible) {
+            try {
+                Console.CursorVisible = visible;
+            } catch {
+                // ignored
+            }
+        }
+
+        private bool SetCursorPositionSafe(int x, int y) {
+            try {
+                Console.SetCursorPosition(x, y);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        private void SetConsoleForeground(ref ConsoleColor currentColor, ConsoleColor target) {
+            if (currentColor == target) {
+                return;
+            }
+
+            try {
+                Console.ForegroundColor = target;
+                currentColor = target;
+            } catch {
+                // ignore consoles that forbid color changes
+            }
+        }
+
+        private void SetConsoleBackground(ref ConsoleColor currentColor, ConsoleColor target) {
+            if (currentColor == target) {
+                return;
+            }
+
+            try {
+                Console.BackgroundColor = target;
+                currentColor = target;
+            } catch {
+                // ignore consoles that forbid color changes
+            }
+        }
+
+        private void ResetConsoleColors(ConsoleColor currentForeground, ConsoleColor currentBackground) {
+            try {
+                if (currentForeground != defaultForeground) {
+                    Console.ForegroundColor = defaultForeground;
+                }
+
+                if (currentBackground != defaultBackground) {
+                    Console.BackgroundColor = defaultBackground;
+                }
+            } catch {
+                // ignore best-effort reset failures
+            }
+        }
+
+        private void TryResetConsoleColors() {
+            try {
+                Console.ResetColor();
+            } catch {
+                // ignore
+            }
+        }
+
+        private void SafeConsoleWrite(char value) {
+            try {
+                Console.Write(value);
+            } catch {
+                // ignore write failures
+            }
+        }
+
+        private void SafeConsoleWrite(string value) {
+            try {
+                Console.Write(value);
+            } catch {
+                // ignore write failures
+            }
+        }
+
+        private static ConsoleColor SafeGetColor(Func<ConsoleColor> getter, ConsoleColor fallback) {
+            try {
+                return getter();
+            } catch {
+                return fallback;
             }
         }
 
