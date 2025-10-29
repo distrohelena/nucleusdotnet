@@ -14,8 +14,4 @@
     <DefineConstants>$(DefineConstants);GENERICS;SERVER;THREADS;CSHARP</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-  </ItemGroup>
-
 </Project>
