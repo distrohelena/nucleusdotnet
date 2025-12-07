@@ -56,6 +56,11 @@ namespace Nucleus.ConsoleEngine {
 
             EnsureSelectionValid();
 
+            // Let the focused control swallow navigation keys (e.g., dropdown menus) before the menu changes focus.
+            if (_selectedOption != null && _selectedOption.HandleNavigationKey(key)) {
+                return;
+            }
+
             // Map arrow navigation into ordered traversals so focus follows the layout.
             switch (key) {
                 case ConsoleKey.UpArrow:

@@ -116,6 +116,13 @@ namespace Nucleus.ConsoleEngine {
         public override void ReceiveKey(ConsoleKey key) {
         }
 
+        /// <summary>
+        /// Gives interactive controls a chance to consume navigation keys before the menu moves focus.
+        /// </summary>
+        public virtual bool HandleNavigationKey(ConsoleKey key) {
+            return false;
+        }
+
         protected string BuildDisplayText(ConsoleMenu menu, int availableWidth) {
             if (availableWidth <= 0) {
                 return string.Empty;
