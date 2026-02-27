@@ -23,6 +23,40 @@ namespace Nucleus.ConsoleEngine {
         private readonly ConsoleColor defaultForeground;
         private readonly ConsoleColor defaultBackground;
         private bool cursorPositioningFailed;
+        /// <summary>
+        /// Tracks whether Unicode box drawing characters should be used for borders.
+        /// </summary>
+        readonly bool useUnicodeBorders;
+
+        /// <summary>
+        /// Horizontal border character for rectangles.
+        /// </summary>
+        readonly char borderHorizontal;
+
+        /// <summary>
+        /// Vertical border character for rectangles.
+        /// </summary>
+        readonly char borderVertical;
+
+        /// <summary>
+        /// Top-left corner border character for rectangles.
+        /// </summary>
+        readonly char borderTopLeft;
+
+        /// <summary>
+        /// Top-right corner border character for rectangles.
+        /// </summary>
+        readonly char borderTopRight;
+
+        /// <summary>
+        /// Bottom-left corner border character for rectangles.
+        /// </summary>
+        readonly char borderBottomLeft;
+
+        /// <summary>
+        /// Bottom-right corner border character for rectangles.
+        /// </summary>
+        readonly char borderBottomRight;
 
         public ConsoleColor? BackgroundColor { get; set; }
 
@@ -35,6 +69,13 @@ namespace Nucleus.ConsoleEngine {
             useAnsiSequences = enableAnsiSequences;
             defaultForeground = SafeGetColor(() => Console.ForegroundColor, ConsoleColor.Gray);
             defaultBackground = SafeGetColor(() => Console.BackgroundColor, ConsoleColor.Black);
+            useUnicodeBorders = ResolveUnicodeBorderPreference(enableAnsiSequences);
+            borderHorizontal = useUnicodeBorders ? '─' : '-';
+            borderVertical = useUnicodeBorders ? '│' : '|';
+            borderTopLeft = useUnicodeBorders ? '┌' : '+';
+            borderTopRight = useUnicodeBorders ? '┐' : '+';
+            borderBottomLeft = useUnicodeBorders ? '└' : '+';
+            borderBottomRight = useUnicodeBorders ? '┘' : '+';
             Resize(width, height);
         }
 
@@ -179,15 +220,15 @@ namespace Nucleus.ConsoleEngine {
                 return;
             }
 
-            DrawHorizontalLine('─', clampedLeft - offset.X, clampedTop - offset.Y, clampedRight - clampedLeft + 1, foregroundColor, backgroundColor);
-            DrawHorizontalLine('─', clampedLeft - offset.X, clampedBottom - offset.Y, clampedRight - clampedLeft + 1, foregroundColor, backgroundColor);
-            DrawVerticalLine('│', clampedLeft - offset.X, clampedTop - offset.Y, clampedBottom - clampedTop + 1, foregroundColor, backgroundColor);
-            DrawVerticalLine('│', clampedRight - offset.X, clampedTop - offset.Y, clampedBottom - clampedTop + 1, foregroundColor, backgroundColor);
+            DrawHorizontalLine(borderHorizontal, clampedLeft - offset.X, clampedTop - offset.Y, clampedRight - clampedLeft + 1, foregroundColor, backgroundColor);
+            DrawHorizontalLine(borderHorizontal, clampedLeft - offset.X, clampedBottom - offset.Y, clampedRight - clampedLeft + 1, foregroundColor, backgroundColor);
+            DrawVerticalLine(borderVertical, clampedLeft - offset.X, clampedTop - offset.Y, clampedBottom - clampedTop + 1, foregroundColor, backgroundColor);
+            DrawVerticalLine(borderVertical, clampedRight - offset.X, clampedTop - offset.Y, clampedBottom - clampedTop + 1, foregroundColor, backgroundColor);
 
-            SetPixelIfVisible(clampedLeft, clampedTop, new ConsolePixel('┌', foregroundColor, backgroundColor));
-            SetPixelIfVisible(clampedRight, clampedTop, new ConsolePixel('┐', foregroundColor, backgroundColor));
-            SetPixelIfVisible(clampedLeft, clampedBottom, new ConsolePixel('└', foregroundColor, backgroundColor));
-            SetPixelIfVisible(clampedRight, clampedBottom, new ConsolePixel('┘', foregroundColor, backgroundColor));
+            SetPixelIfVisible(clampedLeft, clampedTop, new ConsolePixel(borderTopLeft, foregroundColor, backgroundColor));
+            SetPixelIfVisible(clampedRight, clampedTop, new ConsolePixel(borderTopRight, foregroundColor, backgroundColor));
+            SetPixelIfVisible(clampedLeft, clampedBottom, new ConsolePixel(borderBottomLeft, foregroundColor, backgroundColor));
+            SetPixelIfVisible(clampedRight, clampedBottom, new ConsolePixel(borderBottomRight, foregroundColor, backgroundColor));
         }
 
         public void FillRectangle(int x, int y, int width, int height, char c, ConsoleColor? foregroundColor = null, ConsoleColor? backgroundColor = null) {
@@ -471,6 +512,46 @@ namespace Nucleus.ConsoleEngine {
                 ConsoleColor.White => "\x1b[107m",
                 _ => RESET_BACKGROUND
             };
+        }
+
+        /// <summary>
+        /// Determines whether Unicode box drawing characters should be used for borders.
+        /// </summary>
+        /// <param name="enableAnsiSequences">True when ANSI rendering is enabled.</param>
+        /// <returns>True when Unicode borders should be used; otherwise false.</returns>
+        static bool ResolveUnicodeBorderPreference(bool enableAnsiSequences) {
+            string forceAscii = Environment.GetEnvironmentVariable("NUCLEUS_CONSOLE_ASCII");
+            if (!string.IsNullOrWhiteSpace(forceAscii)) {
+                return false;
+            }
+
+            string forceUnicode = Environment.GetEnvironmentVariable("NUCLEUS_CONSOLE_UNICODE");
+            if (!string.IsNullOrWhiteSpace(forceUnicode)) {
+                return true;
+            }
+
+            if (!OperatingSystem.IsWindows()) {
+                return true;
+            } else if (!enableAnsiSequences) {
+                return false;
+            }
+
+            string wtSession = Environment.GetEnvironmentVariable("WT_SESSION");
+            if (!string.IsNullOrWhiteSpace(wtSession)) {
+                return true;
+            }
+
+            string conEmu = Environment.GetEnvironmentVariable("ConEmuANSI");
+            if (!string.IsNullOrWhiteSpace(conEmu) && string.Equals(conEmu, "ON", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            string termProgram = Environment.GetEnvironmentVariable("TERM_PROGRAM");
+            if (!string.IsNullOrWhiteSpace(termProgram)) {
+                return true;
+            }
+
+            return false;
         }
     }
 }
