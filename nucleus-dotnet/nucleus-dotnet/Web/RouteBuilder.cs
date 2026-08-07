@@ -40,7 +40,7 @@ namespace Nucleus.Web {
                                     Route route = routeAtt.Route;
                                     string urlRegex = route.UrlRegex;
                                     if (string.IsNullOrEmpty(urlRegex)) {
-                                        route.UrlRegex = baseUrl;
+                                        route.UrlRegex = baseUrl + "$";
                                     } else {
                                         route.UrlRegex = $"{baseUrl}/{urlRegex}";
                                     }
