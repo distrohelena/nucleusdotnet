@@ -71,6 +71,50 @@ namespace Nucleus {
             }
         }
 
+        /// <summary>
+        /// Recursive copy with a per-file transform callback, a file filter, and a directory filter that
+        /// prunes whole subtrees (e.g. node_modules) from the walk.
+        /// </summary>
+        public static void RecursiveCopy(DirectoryInfo source, DirectoryInfo target, Action<FileInfo, StreamReader, StreamWriter> callback, Func<FileInfo, bool> shouldCopy, Func<DirectoryInfo, bool> shouldRecurse) {
+            if (!target.Exists) {
+                target.Create();
+            }
+
+            foreach (FileInfo file in source.GetFiles()) {
+                if (shouldCopy != null &&
+                    !shouldCopy(file)) {
+                    continue;
+                }
+
+                string targetFilePath = Path.Combine(target.FullName, file.Name);
+                if (File.Exists(targetFilePath)) {
+                    File.Delete(targetFilePath);
+                }
+
+                using (Stream str = file.OpenRead()) {
+                    using (StreamReader reader = new StreamReader(str)) {
+                        using (Stream newStr = File.OpenWrite(targetFilePath)) {
+                            using (StreamWriter writer = new StreamWriter(newStr)) {
+                                callback(file, reader, writer);
+
+                                writer.Flush();
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (DirectoryInfo subDirectory in source.GetDirectories()) {
+                if (shouldRecurse != null &&
+                    !shouldRecurse(subDirectory)) {
+                    continue;
+                }
+
+                DirectoryInfo nextTargetSubDir = target.CreateSubdirectory(subDirectory.Name);
+                RecursiveCopy(subDirectory, nextTargetSubDir, callback, shouldCopy, shouldRecurse);
+            }
+        }
+
         public static void GetFiles(DirectoryInfo baseDir, Func<FileInfo, bool> filter, List<FileInfo> allFiles) {
             FileInfo[] files = baseDir.GetFiles();
 
