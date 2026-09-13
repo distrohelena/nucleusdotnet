@@ -56,7 +56,7 @@ public sealed class TerminalEnvironment {
             return false;
         }
 
-        if (OperatingSystem.IsWindows()) {
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
             virtualTerminalEnabled = TryEnableVirtualTerminalProcessing();
             return virtualTerminalEnabled;
         }

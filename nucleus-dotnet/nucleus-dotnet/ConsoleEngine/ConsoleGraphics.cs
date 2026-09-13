@@ -530,7 +530,7 @@ namespace Nucleus.ConsoleEngine {
                 return true;
             }
 
-            if (!OperatingSystem.IsWindows()) {
+            if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) {
                 return true;
             } else if (!enableAnsiSequences) {
                 return false;
