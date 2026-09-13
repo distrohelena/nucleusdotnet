@@ -1,15 +1,21 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 #if WINFORMS
 using System.Windows.Forms;
 #endif
 
 namespace Nucleus {
     public static class ApplicationUtil {
+        static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = null,
+            WriteIndented = false
+        };
+
         /// <summary>
         /// TODO: bring my binary serializer back into Nucleus.Gaming
         /// Converts an object to JSON, then a Base64 string that can be passed to a program as start parameters
@@ -17,12 +23,22 @@ namespace Nucleus {
         /// <param name="data"></param>
         /// <returns></returns>
         public static string GetObjectAsArgument(object data) {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(data)));
+            string json = JsonSerializer.Serialize(data, SerializerOptions);
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         }
 
         public static void PopulateObjectWithArgument(object target, string base64Str) {
+            if (target == null) {
+                throw new ArgumentNullException(nameof(target));
+            }
+
             string base64 = Encoding.UTF8.GetString(Convert.FromBase64String(base64Str));
-            JsonConvert.PopulateObject(base64, target);
+            object? updated = JsonSerializer.Deserialize(base64, target.GetType(), SerializerOptions);
+            if (updated == null) {
+                return;
+            }
+
+            CopyProperties(updated, target);
         }
 
         public static bool OnlyOneInstance() {
@@ -58,5 +74,17 @@ namespace Nucleus {
 #endif
         }
 
+        static void CopyProperties(object source, object destination) {
+            Type targetType = destination.GetType();
+
+            foreach (PropertyInfo property in targetType.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
+                if (!property.CanWrite || !property.CanRead) {
+                    continue;
+                }
+
+                object? value = property.GetValue(source);
+                property.SetValue(destination, value);
+            }
+        }
     }
 }
