@@ -29,5 +29,9 @@ namespace Nucleus {
                 return true;
             }
         }
+
+        public static UInt32 ReadNucleusVersion(this BinaryReader reader) {
+            return reader.ReadUInt32();
+        }
     }
 }

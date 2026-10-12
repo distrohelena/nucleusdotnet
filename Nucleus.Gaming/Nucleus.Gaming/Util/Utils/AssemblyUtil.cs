@@ -66,5 +66,9 @@ namespace Nucleus {
                     return null;
             }
         }
+
+        public static string GetRootFilePath(string path) {
+            return Path.Combine(AssemblyUtil.GetStartFolder(), path);
+        }
     }
 }

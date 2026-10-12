@@ -31,6 +31,10 @@ namespace Nucleus.Platform.Windows.Interop {
             deviceName = device;
             primary = isPrimary;
         }
+
+        public override string ToString() {
+            return $"{DeviceName}- {Bounds}";
+        }
     }
 }
 #endif

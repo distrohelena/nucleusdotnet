@@ -1,4 +1,4 @@
-﻿#if WINDOWS
+﻿#if FORMS
 using System.Drawing;
 using System.Windows.Forms;
 

@@ -17,12 +17,16 @@
             return frame * sec;
         }
 
-        public static double BytesToMegabytes(double size) {
+        public static double BytesToMebibytes(double size) {
             return size / 1024.0 / 1024.0;
         }
 
-        public static string BytesToMegabytesString(double size) {
-            return BytesToMegabytes(size).ToString("F2") + " MB";
+        public static double BytesToKibibytes(double size) {
+            return size / 1024.0;
+        }
+
+        public static string BytesToMebibytesString(double size) {
+            return BytesToMebibytes(size).ToString("F2") + " MB";
         }
     }
 }

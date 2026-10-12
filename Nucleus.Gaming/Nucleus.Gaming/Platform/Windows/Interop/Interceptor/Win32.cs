@@ -107,10 +107,10 @@ namespace Nucleus.Platform.Windows {
         [DllImport("User32.dll", EntryPoint = "SetActiveWindow")]
         public static extern int SetActiveWindow(IntPtr hwnd);
 
-        [DllImport("user32")]
+        [DllImport("user32.dll")]
         public static extern int EnumWindows(EnumProc cbf, int lParam);
 
-        [DllImport("user32")]
+        [DllImport("user32.dll")]
         public static extern int EnumChildWindows(IntPtr hwnd, EnumProc cbf, int lParam);
 
         [DllImport("user32.dll")]

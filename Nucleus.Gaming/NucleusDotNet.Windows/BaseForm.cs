@@ -1,6 +1,5 @@
 ﻿#if WINDOWS
 using Nucleus.DPI;
-using SplitScreenMe.Core;
 using System;
 using System.Drawing;
 using System.Windows.Forms;

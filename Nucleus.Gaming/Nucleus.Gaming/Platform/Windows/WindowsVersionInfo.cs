@@ -1,5 +1,4 @@
 ﻿#if WINDOWS
-
 using Microsoft.Win32;
 using System;
 using System.Diagnostics;

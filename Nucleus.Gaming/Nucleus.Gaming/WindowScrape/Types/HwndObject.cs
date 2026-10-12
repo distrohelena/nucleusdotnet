@@ -1,18 +1,34 @@
 ﻿using Newtonsoft.Json;
+using Nucleus.Platform.Windows.Interop;
+using Nucleus.Platform.Windows;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using static Nucleus.Platform.Windows.Interop.User32Interop;
 using Point = System.Drawing.Point;
+using System.Diagnostics;
+using System.Numerics;
 
 namespace Nucleus.WindowScrape {
     /// <summary>
     /// Allows the searching, navigation, and manipulation of Hwnd objects.
     /// </summary>
     public class HwndObject {
+        public static IntPtr CurrentForegroundWindow { get; private set; }
+
+
         /// <summary>
         /// The windows handle to this object.
         /// </summary>
         public IntPtr NativePtr { get; private set; }
+
+        public Process Process {
+            get {
+                int pid;
+                User32Interop.GetWindowThreadProcessId(NativePtr, out pid);
+                return Process.GetProcessById(pid);
+            }
+        }
 
         /// <summary>
         /// The registered class name (if any) of this object.
@@ -55,17 +71,39 @@ namespace Nucleus.WindowScrape {
             }
         }
 
+        [JsonIgnore]
+        public Rectangle Bounds {
+            get {
+                return new Rectangle(Location, Size);
+            }
+        }
+
+        public bool Visible {
+            get { return HwndInterface.IsWindowVisible(NativePtr); }
+            set {
+                if (value) {
+                    Show();
+                } else {
+                    Hide();
+                }
+            }
+        }
+
         private bool isTopMost;
 
         [JsonIgnore]
         public bool TopMost {
-            get { return isTopMost; }
+            get {
+                // TODO: get actual topmost
+                return isTopMost;
+            }
             set {
                 isTopMost = value;
                 if (value) {
                     HwndInterface.MakeTopMost(NativePtr);
+                    //HwndInterface.SetTopMost(NativePtr);
                 } else {
-                    throw new NotImplementedException();
+                    HwndInterface.MakeNotTopMost(NativePtr);
                 }
             }
         }
@@ -83,6 +121,15 @@ namespace Nucleus.WindowScrape {
                     HwndInterface.SetHwndSize(NativePtr, value.Width, value.Height);
                 }
             }
+        }
+
+        /// <summary>
+        /// The size of this Hwnd Object.
+        /// </summary>
+        [JsonIgnore]
+        public Size ClientSize {
+            get { return HwndInterface.GetHwndClientSize(NativePtr); }
+            
         }
 
         /// <summary>
@@ -158,6 +205,18 @@ namespace Nucleus.WindowScrape {
             HwndInterface.ClickHwnd(NativePtr);
         }
 
+        public void Release(int x, int y) {
+            HwndInterface.ClickReleaseWnd(NativePtr, x, y);
+        }
+
+        public void Click(int x, int y) {
+            HwndInterface.ClickWnd(NativePtr, x, y);
+        }
+
+        public void Highlight(int x, int y) {
+            HwndInterface.HighlightWnd(NativePtr, x, y);
+        }
+
         /// <summary>
         /// Seeks a parent for this Hwnd Object (if any).
         /// </summary>
@@ -190,6 +249,36 @@ namespace Nucleus.WindowScrape {
 
         public bool MoveWindow(Point location, Size size) {
             return HwndInterface.MoveWindow(NativePtr, location.X, location.Y, size.Width, size.Height);
+        }
+
+        public void Show() {
+            HwndInterface.ShowWindow(NativePtr, 1);
+        }
+
+        public void Hide() {
+            HwndInterface.ShowWindow(NativePtr, 0);
+        }
+
+        public void Activate() {
+            HwndInterface.SetActiveWindow(NativePtr);
+        }
+
+        public void BringToFront() {
+            WindowPlacement placement = new WindowPlacement();
+            User32Interop.GetWindowPlacement(NativePtr, ref placement);
+
+            // Check if window is minimized
+            if (placement.showCmd == 2) {
+                //the window is hidden so we restore it
+                ShowWindow(NativePtr, WindowShowStyle.Restore);
+            }
+
+            CurrentForegroundWindow = User32Interop.GetForegroundWindow();
+            User32Interop.SetForegroundWindow(NativePtr);
+        }
+
+        public void ReturnToBack() {
+            User32Interop.SetForegroundWindow(CurrentForegroundWindow);
         }
 
         public override string ToString() {

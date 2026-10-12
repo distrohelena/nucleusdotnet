@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Nucleus {
     public static class BinaryWriterExtensions {
@@ -15,7 +16,11 @@ namespace Nucleus {
             writer.Write('D');
         }
 
-#if WINDOWS
+        public static void WriteNucleusVersion(this BinaryWriter writer, UInt32 version) {
+            writer.Write(version);
+        }
+
+#if FORMS
         public static void Write(this BinaryWriter writer, System.Drawing.Rectangle rect) {
             writer.Write(rect.X);
             writer.Write(rect.Y);

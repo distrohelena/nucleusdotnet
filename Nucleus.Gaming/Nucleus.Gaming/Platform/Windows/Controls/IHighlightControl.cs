@@ -1,4 +1,4 @@
-﻿#if WINDOWS
+﻿#if FORMS
 namespace Nucleus.Platform.Windows.Controls {
     public interface IRadioControl {
         void RadioSelected();

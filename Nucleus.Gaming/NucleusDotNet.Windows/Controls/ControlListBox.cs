@@ -169,12 +169,14 @@ namespace Nucleus.Platform.Windows.Controls {
         }
 
         private void c_MouseWheel(object sender, MouseEventArgs e) {
+            throw new Exception("Fix me");
+
             // scroll bar
-            Point loc = contentPanel.Location;
-            Point nPoint = new Point(loc.X, (int)(loc.Y + (e.Delta * 0.5f)));
-            nPoint.Y = MathUtil.Clamp(nPoint.Y, -maxScrollHeight, 0);
-            contentPanel.Location = nPoint;
-            contentPanel.Refresh();
+            //Point loc = contentPanel.Location;
+            //Point nPoint = new Point(loc.X, (int)(loc.Y + (e.Delta * 0.5f)));
+            //nPoint.Y = MathUtil.Clamp(nPoint.Y, -maxScrollHeight, 0);
+            //contentPanel.Location = nPoint;
+            //contentPanel.Refresh();
         }
 
         private void c_MouseLeave(object sender, EventArgs e) {

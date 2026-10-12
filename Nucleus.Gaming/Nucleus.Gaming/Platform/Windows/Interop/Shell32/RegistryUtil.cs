@@ -1,4 +1,4 @@
-﻿#if WINDOWS
+﻿#if FORMS
 using Microsoft.Win32;
 using System;
 

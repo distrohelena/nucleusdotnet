@@ -1,10 +1,62 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
 namespace Nucleus {
     public static class StringUtil {
+        public static string LeftRepeat(string str, string toRepeat, int nCharMax) {
+            string result = "";
+            for (int i = 0; i < nCharMax - str.Length; i++) {
+                result = result + toRepeat;
+            }
+
+            return result + str;
+        }
+
+        public static string Capitalize(string str) {
+            return str[0].ToString().ToUpperInvariant() + str.Remove(0, 1);
+        }
+
+        public static string Num2(int number) {
+            string strNumber = number.ToString();
+            if (strNumber.Length == 1) {
+                return "0" + strNumber;
+            }
+            return strNumber;
+        }
+
+        public static string[] Split(string str, char separator, int maxDepth) {
+            List<string> splitted = new List<string>();
+
+            int index = 0;
+            int start = 0;
+            for (int i = 0; i < maxDepth; i++) {
+                if (start >= str.Length) {
+                    if (str.Length - index > 0) {
+                        splitted.Add(str.Remove(0, index + 1));
+                    }
+                    break;
+                }
+
+                int nextSeparator = str.IndexOf(separator, start);
+                if (nextSeparator == -1) {
+                    if (str.Length - index > 0) {
+                        splitted.Add(str.Remove(0, index + 1));
+                    }
+                    break;
+                }
+
+                string firstToNext = str.Substring(0, nextSeparator);
+                index = nextSeparator;
+                start = nextSeparator + firstToNext.Length;
+                splitted.Add(firstToNext);
+            }
+
+            return splitted.ToArray();
+        }
+
         public static string ClearTextString(string strValue) {
             while (strValue.Contains("\t")) {
                 strValue = strValue.Replace("\t", "");
@@ -134,14 +186,84 @@ namespace Nucleus {
                 object ob = ((IList)array)[i];
                 str += ob;
                 if (i != array.Length - 1) {
-                    ob += ", ";
+                    str += ", ";
                 }
             }
             return str;
         }
 
-#if WINFORMS
+        /// <summary>
+        /// For strings like ====== TEST ======
+        /// </summary>
+        /// <param name="baseStr"></param>
+        /// <param name="toFill"></param>
+        /// <returns></returns>
+        public static string FillWithLeftAndRight(string baseStr, char toFill, int maxWidth) {
+            int toAdd = maxWidth - baseStr.Length - 2;
+            if (toAdd < 0) {
+                return baseStr;
+            }
 
+            baseStr = ' ' + baseStr + ' ';
+
+            toAdd /= 2;
+            // add at the end
+            for (int i = 0; i < toAdd; i++) {
+                baseStr = baseStr + toFill;
+            }
+            for (int i = 0; i < toAdd; i++) {
+                baseStr = toFill + baseStr;
+            }
+
+            return baseStr;
+        }
+
+        public static string MirrorChars(char c, int width, char inBetween = ' ') {
+            string s = c.ToString();
+
+            for (int i = 0; i < width - 2; i++) {
+                s = s + inBetween;
+            }
+
+            s = s + c;
+
+            return s;
+        }
+
+        public static string FillToRight(string baseStr, char c, int maxWidth) {
+            int toAdd = maxWidth - baseStr.Length;
+
+            for (int i = 0; i < toAdd; i++) {
+                baseStr = baseStr + c;
+            }
+
+            return baseStr;
+        }
+
+        public static string AddCharacterEachCount(string baseStr, string toAdd, int each, int minimum) {
+            if (baseStr.Length < minimum) {
+                return baseStr;
+            }
+
+            string newStr = baseStr;
+            for (int i = newStr.Length - each; i > 0; i -= each) {
+                newStr = newStr.Insert(i, toAdd);
+            }
+            return newStr;
+        }
+        
+        public static string GetOrdinal(int placement) {
+            if (placement == 1) {
+                return placement + "st";
+            } else if (placement == 2) {
+                return placement + "nd";
+            }
+            else {
+                return placement + "th";
+            }
+        }
+
+#if WINFORMS
         /// <summary>
         /// This method can be made better
         /// </summary>

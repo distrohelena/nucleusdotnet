@@ -1,4 +1,4 @@
-﻿#if WINDOWS
+﻿#if FORMS
 using Nucleus.DPI;
 using SplitScreenMe.Core;
 using System;

@@ -914,6 +914,9 @@ namespace Nucleus.WindowScrape {
         /// <summary>
         /// WM_SYSTIMER is a well-known yet still undocumented message. Windows uses WM_SYSTIMER for internal actions like scrolling.
         /// </summary>
-        SYSTIMER = 0x118
+        SYSTIMER = 0x118,
+
+        TB_GETBUTTON = 1047,
+        TB_BUTTONCOUNT = 1048
     }
 }
